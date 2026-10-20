@@ -7,14 +7,18 @@ import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TemplateBuilder } from "@/features/templates/components/TemplateBuilder";
+import { FlowTemplateBuilder } from "@/features/templates/components/FlowTemplateBuilder";
 import { getTemplateAction } from "@/features/templates/actions/template-actions";
+import { getFlowTemplateAction } from "@/features/templates/actions/flow-template-actions";
 import { TemplateDefinition } from "@/lib/template-engine/types";
+import { TemplateFlowDefinition } from "@/lib/template-engine/flow-types";
 
 function EditTemplateContent() {
   const params = useParams();
   const id = params?.id as string;
 
-  const [template, setTemplate] = useState<TemplateDefinition | null>(null);
+  const [linearTemplate, setLinearTemplate] = useState<TemplateDefinition | null>(null);
+  const [flowTemplate, setFlowTemplate] = useState<TemplateFlowDefinition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +30,16 @@ function EditTemplateContent() {
       try {
         const res = await getTemplateAction(id);
         if (res.success) {
-          setTemplate(res.data);
+          if (res.data.schema_version === 2) {
+            const flowRes = await getFlowTemplateAction(id);
+            if (flowRes.success) {
+              setFlowTemplate(flowRes.data);
+            } else {
+              setError(flowRes.error || "Gagal memuat format alur template.");
+            }
+          } else {
+            setLinearTemplate(res.data);
+          }
         } else {
           setError(res.error || "Template tidak tersedia.");
         }
@@ -43,12 +56,12 @@ function EditTemplateContent() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-text-muted">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-sm">Memuat template...</span>
+        <span className="text-sm">Memuat editor template...</span>
       </div>
     );
   }
 
-  if (error || !template) {
+  if (error || (!linearTemplate && !flowTemplate)) {
     return (
       <div className="max-w-md mx-auto py-16">
         <Card className="text-center p-6">
@@ -74,7 +87,15 @@ function EditTemplateContent() {
     );
   }
 
-  return <TemplateBuilder initialData={template} isEditing={true} />;
+  if (flowTemplate) {
+    return <FlowTemplateBuilder initialData={flowTemplate} isEditing={true} />;
+  }
+
+  if (linearTemplate) {
+    return <TemplateBuilder initialData={linearTemplate} isEditing={true} />;
+  }
+
+  return null;
 }
 
 export default function EditTemplatePage() {

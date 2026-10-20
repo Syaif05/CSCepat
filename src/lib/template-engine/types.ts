@@ -3,7 +3,14 @@
  * Sesuai PRD Bagian 7, 8, 9, dan 14
  */
 
-export type FieldType = "text" | "textarea" | "select" | "combobox";
+export type FieldType =
+  | "text"
+  | "textarea"
+  | "select"
+  | "combobox"
+  | "number"
+  | "boolean";
+
 
 export type DataClass = "transient" | "configuration";
 

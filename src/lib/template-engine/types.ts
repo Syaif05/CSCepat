@@ -61,6 +61,7 @@ export interface TemplateListItem {
   is_favorite: boolean;
   is_archived: boolean;
   starter_key: string | null;
+  schema_version?: number;
   version: number;
   updated_at: string;
 }

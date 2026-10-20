@@ -10,6 +10,7 @@ import {
 import { TemplateDefinitionSchema } from "@/lib/validation/template-schema";
 import { parseTemplate, validateTemplateVariables } from "@/lib/template-engine/parser";
 import { STARTER_TEMPLATES } from "@/lib/template-engine/starters";
+import { STARTER_FLOWS } from "@/lib/template-engine/starter-flows";
 
 export type ActionResponse<T = unknown> =
   | { success: true; data: T }
@@ -46,18 +47,40 @@ export async function listTemplatesAction(filterOptions?: {
     if (authError || !user) {
       if (isPlaceholderConfig()) {
         // Fallback untuk mode development tanpa kredensial Supabase
-        const starterList: TemplateListItem[] = STARTER_TEMPLATES.map((st, idx) => ({
-          id: `local-starter-${idx + 1}`,
-          title: st.title,
-          description: st.description,
-          category: st.category,
-          field_count: st.fields.length,
-          is_favorite: st.is_favorite,
-          is_archived: st.is_archived,
-          starter_key: st.starter_key || null,
-          version: st.version,
-          updated_at: new Date().toISOString(),
-        }));
+        const starterList: TemplateListItem[] = [
+          ...STARTER_FLOWS.map((sf, idx) => {
+            const totalFields = sf.nodes.reduce(
+              (acc, n) => acc + n.fields.length,
+              0
+            );
+            return {
+              id: sf.id || `starter-flow-${idx + 1}`,
+              title: sf.title,
+              description: sf.description,
+              category: sf.category,
+              field_count: totalFields,
+              is_favorite: sf.is_favorite,
+              is_archived: sf.is_archived,
+              starter_key: sf.starter_key || null,
+              schema_version: 2,
+              version: sf.version,
+              updated_at: new Date().toISOString(),
+            };
+          }),
+          ...STARTER_TEMPLATES.map((st, idx) => ({
+            id: `local-starter-${idx + 1}`,
+            title: st.title,
+            description: st.description,
+            category: st.category,
+            field_count: st.fields.length,
+            is_favorite: st.is_favorite,
+            is_archived: st.is_archived,
+            starter_key: st.starter_key || null,
+            schema_version: 1,
+            version: st.version,
+            updated_at: new Date().toISOString(),
+          })),
+        ];
         return { success: true, data: starterList };
       }
       return {
@@ -70,7 +93,7 @@ export async function listTemplatesAction(filterOptions?: {
     // Query hanya metadata (tanpa kolom body dan fields yang besar)
     let query = supabase
       .from("templates")
-      .select("id, title, description, category, fields, is_favorite, is_archived, starter_key, version, updated_at")
+      .select("id, title, description, category, fields, is_favorite, is_archived, starter_key, schema_version, version, updated_at")
       .order("updated_at", { ascending: false });
 
     if (filterOptions?.filter === "favorite") {
@@ -112,6 +135,7 @@ export async function listTemplatesAction(filterOptions?: {
         is_favorite: row.is_favorite,
         is_archived: row.is_archived,
         starter_key: row.starter_key,
+        schema_version: row.schema_version || 1,
         version: row.version,
         updated_at: row.updated_at,
       };
@@ -144,6 +168,30 @@ export async function getTemplateAction(
 
     if (authError || !user) {
       if (isPlaceholderConfig()) {
+        const foundFlow = STARTER_FLOWS.find((f) => f.id === id);
+        if (foundFlow) {
+          return {
+            success: true,
+            data: {
+              id: foundFlow.id,
+              title: foundFlow.title,
+              description: foundFlow.description,
+              category: foundFlow.category,
+              body: JSON.stringify({
+                rootNodeId: foundFlow.rootNodeId,
+                nodes: foundFlow.nodes,
+              }),
+              fields: [],
+              is_favorite: foundFlow.is_favorite,
+              is_archived: foundFlow.is_archived,
+              starter_key: foundFlow.starter_key,
+              schema_version: 2,
+              version: foundFlow.version,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          };
+        }
         const starterIndex = parseInt(id.replace("local-starter-", ""), 10) - 1;
         const found = STARTER_TEMPLATES[starterIndex] || STARTER_TEMPLATES[0];
         return {

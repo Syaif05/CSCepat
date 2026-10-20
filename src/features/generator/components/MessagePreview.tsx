@@ -4,6 +4,7 @@ import React from "react";
 import { Eye, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FieldDefinition } from "@/lib/template-engine/types";
+import { FlowFieldDefinition } from "@/lib/template-engine/flow-types";
 import { OutputMode, PreviewTab } from "../hooks/useGeneratorState";
 
 interface MessagePreviewProps {
@@ -13,7 +14,7 @@ interface MessagePreviewProps {
   setOutputMode: (mode: OutputMode) => void;
   activePreviewTab: PreviewTab;
   setActivePreviewTab: (tab: PreviewTab) => void;
-  missingRequiredFields: FieldDefinition[];
+  missingRequiredFields: (FieldDefinition | FlowFieldDefinition)[];
   hasTemplate: boolean;
 }
 

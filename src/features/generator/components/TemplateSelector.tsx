@@ -16,12 +16,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TemplateDefinition, TemplateListItem } from "@/lib/template-engine/types";
+import { TemplateFlowDefinition } from "@/lib/template-engine/flow-types";
 import { getTemplateAction } from "@/features/templates/actions/template-actions";
+
+type UnifiedTemplate = TemplateDefinition | TemplateFlowDefinition;
 
 interface TemplateSelectorProps {
   templates: TemplateListItem[];
-  selectedTemplate: TemplateDefinition | null;
-  onSelectTemplate: (template: TemplateDefinition) => void;
+  selectedTemplate: UnifiedTemplate | null;
+  onSelectTemplate: (template: UnifiedTemplate) => void;
   loading?: boolean;
 }
 
@@ -121,7 +124,9 @@ export function TemplateSelector({
         <div className="flex items-center gap-2 shrink-0">
           {selectedTemplate && (
             <Badge variant="secondary" className="text-[10px] font-mono py-0 px-1.5">
-              {selectedTemplate.fields.length} Field
+              {"fields" in selectedTemplate && Array.isArray(selectedTemplate.fields)
+                ? `${selectedTemplate.fields.length} Field`
+                : `${(selectedTemplate as TemplateFlowDefinition).nodes?.reduce((acc, n) => acc + (n.fields?.length || 0), 0) || 0} Field`}
             </Badge>
           )}
           <ChevronDown
@@ -224,6 +229,11 @@ export function TemplateSelector({
                         <Badge variant="secondary" className="text-[9px] py-0 px-1.5">
                           {tpl.category || "Umum"}
                         </Badge>
+                        {tpl.schema_version === 2 && (
+                          <Badge variant="default" className="text-[9px] py-0 px-1.5">
+                            Flow v2
+                          </Badge>
+                        )}
                         <span className="text-[10px] text-text-muted">
                           {tpl.field_count} variabel
                         </span>

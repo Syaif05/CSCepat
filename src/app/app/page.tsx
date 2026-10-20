@@ -25,6 +25,7 @@ import { STARTER_TEMPLATES } from "@/lib/template-engine/starters";
 import { useGeneratorState } from "@/features/generator/hooks/useGeneratorState";
 import { TemplateSelector } from "@/features/generator/components/TemplateSelector";
 import { DynamicForm } from "@/features/generator/components/DynamicForm";
+import { DynamicFlowForm } from "@/features/generator/components/DynamicFlowForm";
 import { MessagePreview } from "@/features/generator/components/MessagePreview";
 import { GeneratorActions } from "@/features/generator/components/GeneratorActions";
 import { FallbackCopyDialog } from "@/features/generator/components/FallbackCopyDialog";
@@ -38,6 +39,8 @@ export default function GeneratorPage() {
   const {
     selectedTemplate,
     selectTemplate,
+    flowDefinition,
+    activeFlow,
     values,
     setValue,
     outputMode,
@@ -249,9 +252,16 @@ export default function GeneratorPage() {
                 >
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {tpl.category || "Umum"}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {tpl.category || "Umum"}
+                        </Badge>
+                        {tpl.schema_version === 2 && (
+                          <Badge variant="default" className="text-[10px]">
+                            Flow v2
+                          </Badge>
+                        )}
+                      </div>
                       {tpl.is_favorite && (
                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500 shrink-0" />
                       )}
@@ -308,13 +318,25 @@ export default function GeneratorPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Kolom Kiri: Formulir Dinamis (lg:col-span-5) */}
             <div className="lg:col-span-5 flex flex-col gap-4">
-              <DynamicForm
-                fields={selectedTemplate.fields}
-                values={values}
-                onChange={setValue}
-                outputMode={outputMode}
-                firstInputRef={firstInputRef}
-              />
+              {flowDefinition && activeFlow ? (
+                <DynamicFlowForm
+                  flowTemplate={flowDefinition}
+                  activeNodes={activeFlow.activeNodes}
+                  activeFields={activeFlow.activeFields}
+                  values={values}
+                  onChange={setValue}
+                  outputMode={outputMode}
+                  firstInputRef={firstInputRef}
+                />
+              ) : (
+                <DynamicForm
+                  fields={("fields" in selectedTemplate ? selectedTemplate.fields : []) || []}
+                  values={values}
+                  onChange={setValue}
+                  outputMode={outputMode}
+                  firstInputRef={firstInputRef}
+                />
+              )}
             </div>
 
             {/* Kolom Kanan: Pratinjau Pesan (lg:col-span-7) */}

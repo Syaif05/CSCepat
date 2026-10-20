@@ -36,6 +36,45 @@ export async function listTemplatesAction(filterOptions?: {
   filter?: "all" | "favorite" | "archived";
 }): Promise<ActionResponse<TemplateListItem[]>> {
   try {
+    if (isPlaceholderConfig()) {
+      // Fallback untuk mode development tanpa kredensial Supabase
+      const starterList: TemplateListItem[] = [
+        ...STARTER_FLOWS.map((sf, idx) => {
+          const totalFields = sf.nodes.reduce(
+            (acc, n) => acc + n.fields.length,
+            0
+          );
+          return {
+            id: sf.id || `starter-flow-${idx + 1}`,
+            title: sf.title,
+            description: sf.description,
+            category: sf.category,
+            field_count: totalFields,
+            is_favorite: sf.is_favorite,
+            is_archived: sf.is_archived,
+            starter_key: sf.starter_key || null,
+            schema_version: 2,
+            version: sf.version,
+            updated_at: new Date().toISOString(),
+          };
+        }),
+        ...STARTER_TEMPLATES.map((st, idx) => ({
+          id: `local-starter-${idx + 1}`,
+          title: st.title,
+          description: st.description,
+          category: st.category,
+          field_count: st.fields.length,
+          is_favorite: st.is_favorite,
+          is_archived: st.is_archived,
+          starter_key: st.starter_key || null,
+          schema_version: 1,
+          version: st.version,
+          updated_at: new Date().toISOString(),
+        })),
+      ];
+      return { success: true, data: starterList };
+    }
+
     const supabase = await createClient();
 
     // Cek autentikasi
@@ -45,44 +84,6 @@ export async function listTemplatesAction(filterOptions?: {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      if (isPlaceholderConfig()) {
-        // Fallback untuk mode development tanpa kredensial Supabase
-        const starterList: TemplateListItem[] = [
-          ...STARTER_FLOWS.map((sf, idx) => {
-            const totalFields = sf.nodes.reduce(
-              (acc, n) => acc + n.fields.length,
-              0
-            );
-            return {
-              id: sf.id || `starter-flow-${idx + 1}`,
-              title: sf.title,
-              description: sf.description,
-              category: sf.category,
-              field_count: totalFields,
-              is_favorite: sf.is_favorite,
-              is_archived: sf.is_archived,
-              starter_key: sf.starter_key || null,
-              schema_version: 2,
-              version: sf.version,
-              updated_at: new Date().toISOString(),
-            };
-          }),
-          ...STARTER_TEMPLATES.map((st, idx) => ({
-            id: `local-starter-${idx + 1}`,
-            title: st.title,
-            description: st.description,
-            category: st.category,
-            field_count: st.fields.length,
-            is_favorite: st.is_favorite,
-            is_archived: st.is_archived,
-            starter_key: st.starter_key || null,
-            schema_version: 1,
-            version: st.version,
-            updated_at: new Date().toISOString(),
-          })),
-        ];
-        return { success: true, data: starterList };
-      }
       return {
         success: false,
         code: "UNAUTHENTICATED",
@@ -159,6 +160,39 @@ export async function getTemplateAction(
   id: string
 ): Promise<ActionResponse<TemplateDefinition>> {
   try {
+    if (isPlaceholderConfig()) {
+      const foundFlow = STARTER_FLOWS.find((f) => f.id === id);
+      if (foundFlow) {
+        return {
+          success: true,
+          data: {
+            id: foundFlow.id,
+            title: foundFlow.title,
+            description: foundFlow.description,
+            category: foundFlow.category,
+            body: JSON.stringify({
+              rootNodeId: foundFlow.rootNodeId,
+              nodes: foundFlow.nodes,
+            }),
+            fields: [],
+            is_favorite: foundFlow.is_favorite,
+            is_archived: foundFlow.is_archived,
+            starter_key: foundFlow.starter_key,
+            schema_version: 2,
+            version: foundFlow.version,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        };
+      }
+      const starterIndex = parseInt(id.replace("local-starter-", ""), 10) - 1;
+      const found = STARTER_TEMPLATES[starterIndex] || STARTER_TEMPLATES[0];
+      return {
+        success: true,
+        data: { ...found, id },
+      };
+    }
+
     const supabase = await createClient();
 
     const {
@@ -167,38 +201,6 @@ export async function getTemplateAction(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      if (isPlaceholderConfig()) {
-        const foundFlow = STARTER_FLOWS.find((f) => f.id === id);
-        if (foundFlow) {
-          return {
-            success: true,
-            data: {
-              id: foundFlow.id,
-              title: foundFlow.title,
-              description: foundFlow.description,
-              category: foundFlow.category,
-              body: JSON.stringify({
-                rootNodeId: foundFlow.rootNodeId,
-                nodes: foundFlow.nodes,
-              }),
-              fields: [],
-              is_favorite: foundFlow.is_favorite,
-              is_archived: foundFlow.is_archived,
-              starter_key: foundFlow.starter_key,
-              schema_version: 2,
-              version: foundFlow.version,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          };
-        }
-        const starterIndex = parseInt(id.replace("local-starter-", ""), 10) - 1;
-        const found = STARTER_TEMPLATES[starterIndex] || STARTER_TEMPLATES[0];
-        return {
-          success: true,
-          data: { ...found, id },
-        };
-      }
       return {
         success: false,
         code: "UNAUTHENTICATED",
@@ -290,6 +292,24 @@ export async function createTemplateAction(
       };
     }
 
+    if (isPlaceholderConfig()) {
+      const mockNew: TemplateDefinition = {
+        ...templateData,
+        id: requestId || crypto.randomUUID(),
+        version: 1,
+        schema_version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      try {
+        revalidatePath("/app/templates");
+        revalidatePath("/app");
+      } catch {
+        // Safe in test context
+      }
+      return { success: true, data: mockNew };
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -297,18 +317,6 @@ export async function createTemplateAction(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      if (isPlaceholderConfig()) {
-        const mockNew: TemplateDefinition = {
-          ...templateData,
-          id: requestId || crypto.randomUUID(),
-          version: 1,
-          schema_version: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        revalidatePath("/app/templates");
-        return { success: true, data: mockNew };
-      }
       return {
         success: false,
         code: "UNAUTHENTICATED",
@@ -426,6 +434,22 @@ export async function updateTemplateAction(params: {
       };
     }
 
+    if (isPlaceholderConfig()) {
+      const mockUpdated: TemplateDefinition = {
+        ...params,
+        version: params.expected_version + 1,
+        schema_version: 1,
+        updated_at: new Date().toISOString(),
+      };
+      try {
+        revalidatePath("/app/templates");
+        revalidatePath("/app");
+      } catch {
+        // Safe in test context
+      }
+      return { success: true, data: mockUpdated };
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -433,16 +457,6 @@ export async function updateTemplateAction(params: {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      if (isPlaceholderConfig()) {
-        const mockUpdated: TemplateDefinition = {
-          ...params,
-          version: params.expected_version + 1,
-          schema_version: 1,
-          updated_at: new Date().toISOString(),
-        };
-        revalidatePath("/app/templates");
-        return { success: true, data: mockUpdated };
-      }
       return {
         success: false,
         code: "UNAUTHENTICATED",
@@ -544,6 +558,16 @@ export async function deleteTemplateAction(
   expected_version: number
 ): Promise<ActionResponse<boolean>> {
   try {
+    if (isPlaceholderConfig()) {
+      try {
+        revalidatePath("/app/templates");
+        revalidatePath("/app");
+      } catch {
+        // Safe in test context
+      }
+      return { success: true, data: true };
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -551,10 +575,6 @@ export async function deleteTemplateAction(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      if (isPlaceholderConfig()) {
-        revalidatePath("/app/templates");
-        return { success: true, data: true };
-      }
       return {
         success: false,
         code: "UNAUTHENTICATED",

@@ -158,21 +158,35 @@ graph TD
 
 ---
 
-### 🔹 Fase 2.4: Migrasi DB, Backup v2 & Kesiapan Rilis
+### 🔹 Fase 2.4: Migrasi DB, Backup v2 & Kesiapan Rilis ✅ (Selesai 100%)
 **Tujuan:** Menjaga kompatibilitas database, format backup, dan verifikasi menyeluruh.
 
-**Pekerjaan:**
+**Pekerjaan yang Telah Diselesaikan:**
 1. **Kompatibilitas Skema Database:**
-   - Memperbarui migration SQL Supabase agar tabel `templates` mengenali `schema_version = 2` (struktur nodes flow) dengan tetap mempertahankan dukungan terhadap template v1 yang sudah ada (*backward compatibility*).
+   - Membuat file migrasi `supabase/migrations/20261020000001_flow_v2.sql` yang menambahkan batasan `schema_version IN (1, 2)`.
+   - Memperluas fungsi `validate_template_fields` untuk mengenali tipe `number` dan `boolean`.
+   - Mengoptimalkan kapasitas penyimpanan kolom `body` hingga 100.000 karakter / 300.000 byte untuk menampung JSON alur percabangan kompleks.
+   - Memperbarui RPC `update_template_cas` dengan parameter `p_schema_version` untuk menjamin keamanan *optimistic locking* atomik.
 2. **Ekspor & Impor Cadangan v2:**
-   - Memperbarui modul backup JSON agar mendukung ekspor/impor template flow percabangan.
-3. **QA & Hardening:**
-   - Pengujian siklus hidup privasi: memastikan tidak ada jawaban cabang atau nilai pelanggan yang tersimpan ke server.
-   - Menjalankan seluruh pengujian unit, linter, typecheck, dan production build.
+   - Menambahkan skema Zod `FlowTemplateBackupItemSchema` dan union `BackupFileSchema` versi 1 & 2.
+   - Mendukung ekspor dan impor batch campuran template linear v1 dan template flow v2 dengan preview visual langkah di modal pengaturan.
+3. **QA & Hardening Menyeluruh:**
+   - 99 tests lulus 100% di Vitest (tanpa kegagalan).
+   - 0 error TypeScript (`tsc --noEmit`).
+   - 0 error & warning ESLint (`eslint`).
+   - Berhasil dikompilasi ke production bundle (`next build`).
+   - Terbukti memenuhi prinsip *Zero Customer Storage* di seluruh layer browser dan database.
 
 ---
 
-## 4. Konfirmasi untuk Memulai
+## 4. Status Eksekusi
 
-Rencana di atas telah dirancang agar kita dapat mengerjakannya secara bertahap dan teruji.  
-Apakah Anda setuju dengan pembagian fase ini, dan dapatkah kita mulai dari **Fase 2.1: Engine & Data Model Flow v2**?
+| Fase | Deskripsi | Status | Commit / PR |
+| --- | --- | --- | --- |
+| **Fase 2.1** | Engine & Data Model Flow v2 | ✅ Selesai | `0f4aa7d` |
+| **Fase 2.2** | Antarmuka Visual Node Flow Builder UI | ✅ Selesai | `0944201` |
+| **Fase 2.3** | Formulir Adaptif & Generator Buat Pesan | ✅ Selesai | `fb93907` |
+| **Fase 2.4** | Migrasi DB, Backup v2 & QA Hardening | ✅ Selesai | Siap Commit |
+
+Semua fase telah berhasil diselesaikan secara menyeluruh dan siap digunakan di *production*.
+

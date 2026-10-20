@@ -274,12 +274,25 @@ export function BackupManager() {
               <div className="max-h-36 overflow-y-auto divide-y divide-border-subtle/40 bg-surface rounded-input p-2 border border-border-subtle text-xs">
                 {stagedBackup.templates.map((tpl, i) => (
                   <div key={i} className="py-1 px-1 flex items-center justify-between">
-                    <span className="font-semibold text-text-main truncate max-w-[280px]">
+                    <span className="font-semibold text-text-main truncate max-w-[240px]">
                       {tpl.title}
                     </span>
-                    <Badge variant="secondary" className="text-[9px]">
-                      {tpl.fields.length} Variabel
-                    </Badge>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {tpl.schema_version === 2 ? (
+                        <>
+                          <Badge variant="default" className="text-[9px] bg-brand-primary text-white border-none py-0">
+                            Flow v2
+                          </Badge>
+                          <Badge variant="secondary" className="text-[9px] py-0">
+                            {tpl.nodes.length} Langkah
+                          </Badge>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="text-[9px] py-0">
+                          {tpl.fields.length} Variabel
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

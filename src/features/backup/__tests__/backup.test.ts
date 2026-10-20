@@ -3,9 +3,15 @@ import {
   BackupFileSchema,
   TemplateBackupItemSchema,
   BackupFileStructure,
+  FlowTemplateBackupItemSchema,
 } from "../schemas";
-import { validateBackupJsonString } from "../actions/backup-actions";
+import {
+  validateBackupJsonString,
+  exportTemplatesBackupAction,
+  importTemplatesBackupAction,
+} from "../actions/backup-actions";
 import { STARTER_TEMPLATES } from "@/lib/template-engine/starters";
+import { STARTER_FLOWS } from "@/lib/template-engine/starter-flows";
 
 describe("Fase 6: Backup, Pengaturan Akun & Edge States Suite", () => {
   const sampleBackupPayload: BackupFileStructure = {
@@ -67,16 +73,16 @@ describe("Fase 6: Backup, Pengaturan Akun & Edge States Suite", () => {
       }
     });
 
-    it("harus menolak schema_version yang belum didukung (misal versi 2)", () => {
+    it("harus menolak schema_version yang belum didukung (misal versi 3)", () => {
       const futureVersion = {
         ...sampleBackupPayload,
-        schema_version: 2,
+        schema_version: 3,
       };
 
       const result = BackupFileSchema.safeParse(futureVersion);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toMatch(/versi 1/i);
+        expect(result.error.issues[0].message).toMatch(/versi 1 atau 2/i);
       }
     });
 
@@ -137,4 +143,93 @@ describe("Fase 6: Backup, Pengaturan Akun & Edge States Suite", () => {
       expect(validModes.includes("html")).toBe(false);
     });
   });
+
+  // -------------------------------------------------------------
+  // Test 5: Dukungan Backup Flow v2 & Hybrid v1/v2 (Fase 2.4)
+  // -------------------------------------------------------------
+  describe("Fase 2.4: Dukungan Backup & Impor Flow v2", () => {
+    it("harus meloloskan validasi FlowTemplateBackupItemSchema", () => {
+      const flowBackupItem = {
+        schema_version: 2 as const,
+        title: STARTER_FLOWS[0].title,
+        description: STARTER_FLOWS[0].description,
+        category: STARTER_FLOWS[0].category,
+        rootNodeId: STARTER_FLOWS[0].rootNodeId,
+        nodes: STARTER_FLOWS[0].nodes,
+        is_favorite: STARTER_FLOWS[0].is_favorite,
+        is_archived: STARTER_FLOWS[0].is_archived,
+      };
+
+      const result = FlowTemplateBackupItemSchema.safeParse(flowBackupItem);
+      expect(result.success).toBe(true);
+    });
+
+    it("harus mengekspor file cadangan v2 yang memuat starter flows dan linear templates", async () => {
+      const exportRes = await exportTemplatesBackupAction();
+      expect(exportRes.success).toBe(true);
+      if (exportRes.success) {
+        expect(exportRes.data.format).toBe("pesanrapi-template-backup");
+        expect(exportRes.data.schema_version).toBe(2);
+        expect(exportRes.data.templates.length).toBeGreaterThan(0);
+
+        // Harus ada setidaknya 1 template flow v2
+        const hasFlow = exportRes.data.templates.some((t) => t.schema_version === 2);
+        expect(hasFlow).toBe(true);
+
+        // Validasi struktur keseluruhan file ekspor
+        const validation = BackupFileSchema.safeParse(exportRes.data);
+        expect(validation.success).toBe(true);
+      }
+    });
+
+    it("harus berhasil mengimpor batch campuran template linear v1 dan flow v2", async () => {
+      const mixedBatch = [
+        {
+          schema_version: 2 as const,
+          title: "Flow Impor Uji",
+          description: "Deskripsi flow uji",
+          category: "Uji",
+          rootNodeId: STARTER_FLOWS[0].rootNodeId,
+          nodes: STARTER_FLOWS[0].nodes,
+          is_favorite: false,
+          is_archived: false,
+        },
+        {
+          schema_version: 1 as const,
+          title: "Linear Impor Uji",
+          description: "Deskripsi linear uji",
+          category: "Uji",
+          body: "Halo {{nama}}",
+          fields: [
+            {
+              id: "f-1",
+              key: "nama",
+              label: "Nama",
+              type: "text" as const,
+              required: true,
+              data_class: "transient" as const,
+              max_length: 100,
+              placeholder: "",
+              help_text: "",
+              allow_custom: false,
+              default_value: null,
+              options: [],
+            },
+          ],
+          is_favorite: true,
+          is_archived: false,
+        },
+      ];
+
+      const importRes = await importTemplatesBackupAction(mixedBatch);
+      expect(importRes.success).toBe(true);
+      if (importRes.success) {
+        expect(importRes.data.importedCount).toBe(2);
+        expect(importRes.data.failedCount).toBe(0);
+        expect(importRes.data.results[0].title).toBe("Flow Impor Uji");
+        expect(importRes.data.results[1].title).toBe("Linear Impor Uji");
+      }
+    });
+  });
 });
+

@@ -8,15 +8,16 @@ Aplikasi ini dibangun dengan prinsip utama **Zero Customer Storage**: seluruh da
 
 ## 🚀 Fitur Utama
 
-- **Penyusunan Pesan Deterministik:** Penggantian token variabel secara instan berbasis AST parser lokal tanpa ketergantungan pada model AI eksternal atau latensi jaringan.
+- **Node-Based Dynamic Flow (Flow v2):** Pembuatan dan penyusunan template alur percabangan interaktif (*decision tree*). Formulir dan pratinjau pesan otomatis beradaptasi mengikuti cabang masalah yang dipilih secara real-time.
+- **6 Jenis Input Dinamis:** Mendukung kontrol `text` (singkat), `textarea` (panjang), `select` (dropdown), `combobox` (isian bebas), `number` (nomor/angka dengan batasan), dan `boolean` (toggle Ya/Tidak).
+- **Penyusunan Pesan Deterministik:** Penggantian token variabel dan penyambungan pesan multi-langkah (*multi-node stitching*) secara instan tanpa ketergantungan pada model AI eksternal atau latensi jaringan.
 - **Dua Mode Output:** Mendukung format **WhatsApp** (dengan penanda bintang `*teks*` otomatis) dan **Teks Biasa (Plain)** untuk email atau tiket internal.
-- **Formulir Dinamis Otomatis:** Formulir input digenerate otomatis menyesuaikan template aktif (mendukung kontrol `text`, `textarea`, `select`, dan `combobox` dengan isian bebas).
 - **Isolasi Privasi Data (Zero-Storage):** 
-  - Nilai pelanggan diklasifikasikan sebagai *Transient* (selalu dimulai kosong dan dibersihkan saat tombol "Pelanggan Baru" diklik, saat berpindah template, atau saat halaman di-refresh).
+  - Nilai pelanggan dan jalur penelusuran alur diklasifikasikan sebagai *Transient* (selalu dimulai kosong dan dibersihkan saat tombol "Pelanggan Baru" diklik, saat berpindah template, atau saat halaman di-refresh).
   - Nilai umum seperti nama toko diklasifikasikan sebagai *Configuration* yang dapat memiliki nilai bawaan template.
-- **Template Builder Lengkap:** Pengguna dapat membuat dan mengedit template sendiri dengan toolbar bold, tombol sisip variabel kursor, validasi token real-time, dan pratinjau simulasi.
+- **Template Builder Lengkap:** Pengguna dapat membuat template linear klasik maupun alur percabangan visual dengan visual step list, rule branching editor, toolbar bold, sisip variabel, dan simulator CS langsung.
 - **Proteksi Konflik Versi (Optimistic Locking):** Menggunakan mekanisme PostgreSQL *Compare-and-Swap (CAS)* untuk mendeteksi jika template telah diperbarui di tab/perangkat lain (mencegah penimpaan data tanpa sengaja).
-- **Pencadangan Mandiri (Backup & Restore):** Ekspor dan impor berkas JSON resmi (`pesanrapi-template-backup` schema v1) dengan sanitasi total dari identitas akun dan data sensitif.
+- **Pencadangan Mandiri (Backup & Restore v2):** Ekspor dan impor berkas JSON resmi (`pesanrapi-template-backup` schema v1 dan v2) dengan sanitasi total dari identitas akun dan data pelanggan.
 - **Offline Readiness:** Generator yang telah dimuat tetap dapat melakukan kalkulasi pesan dan salin clipboard meskipun koneksi internet terputus di tengah jalan.
 - **Aksesibilitas & Keamanan Tinggi:** Dukungan navigasi keyboard penuh, modal focus trap, fallback salin manual, dan konfigurasi *Security Headers* (CSP, X-Frame-Options DENY, nosniff).
 
@@ -27,8 +28,8 @@ Aplikasi ini dibangun dengan prinsip utama **Zero Customer Storage**: seluruh da
 - **Frontend & Server Framework:** Next.js 16 (App Router, Turbopack, TS strict) & React 19
 - **Styling:** Tailwind CSS v4 dengan token desain kustom sesuai PRD
 - **Database & Autentikasi:** Supabase PostgreSQL dengan Row Level Security (RLS) & Supabase SSR
-- **Validasi Data:** Zod & Custom AST Template Parser
-- **Pengujian:** Vitest (58 Unit & Integration tests passing 100%)
+- **Validasi Data:** Zod & Custom AST Template Parser + Flow Decision Evaluator
+- **Pengujian:** Vitest (99 Unit & Integration tests passing 100%)
 - **Hosting Target:** Vercel & Supabase Free Plan
 
 ---
